@@ -2,6 +2,7 @@ import sklearn
 from sklearn import datasets
 from sklearn import svm
 import matplotlib.pyplot as plt
+import pandas
 
 class learning_digits:
 
@@ -27,7 +28,17 @@ class learning_digits:
     def print_scikit_version(self):
         print 'scikit-learn version: ', sklearn.__version__
 
-ld = learning_digits()
-ld.print_scikit_version()
-ld.learn()
-ld.predict(200)
+#ld = learning_digits()
+#ld.print_scikit_version()
+#ld.learn()
+#ld.predict(200)
+
+class iris:
+    def __init__(self):
+        self.dataset = pandas.DataFrame(datasets.load_digits().data)
+    def data_summary(self):
+        print 'Data shape: ', self.dataset.shape
+        print self.dataset.describe()
+
+iris = iris()
+iris.data_summary()
