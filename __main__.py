@@ -10,25 +10,17 @@ from sklearn.feature_extraction import FeatureHasher
 from sklearn.preprocessing import LabelEncoder
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.naive_bayes import BernoulliNB
-import random
 import lib.missmap
+import lib.shuffle
 
 class animal_shelter:
 
     def __init__(self):
         pass
 
-    # Source: http://stackoverflow.com/a/25319311/1501575
-    def shuffle(self, df):
-        index = list(df.index)
-        random.shuffle(index)
-        df = df.ix[index]
-        df.reset_index()
-        return df
-
     def load_train_dataset(self):
         self.df = pandas.read_csv('data/train.csv.gz', compression='gzip')
-        self.df = self.shuffle(self.df)
+        self.df = lib.shuffle.shuffle(self.df)
 
     def split_dataset(self, ts=0, te=1000, vs=1001, ve=2001):
         self.train_start_index = ts
@@ -47,6 +39,7 @@ class animal_shelter:
         print self.dataset.describe()
 
     def learn_naive_bayes(self):
+        print 'Learning from rows %d through %d...' % (self.train_start_index, self.train_end_index)
         vect = DictVectorizer(sparse = False)
         self.vect = vect
         input = self.dataset[:][self.input_variables]
@@ -61,6 +54,7 @@ class animal_shelter:
         self.clf = nb.fit(input, output)
 
     def predict_naive_bayes(self):
+        print 'Predicting rows %d through %d...' % (self.validation_start_index, self.validation_end_index)
         le = self.le
         vect = self.vect
         input_validation = self.validation[:][self.input_variables]
@@ -70,9 +64,9 @@ class animal_shelter:
         output_validation = le.transform(output_validation.values.flatten())
         y_pred = self.clf.predict(input_validation)
         total = input_validation.shape[0]
-        errors = (output_validation != y_pred).sum()
-        accuracy = (1.0 - float(errors)/float(total))*100.0
-        print "Number of mislabeled points out of a total %d points: %d" % (total, errors)
+        correct = (output_validation == y_pred).sum()
+        accuracy = (float(correct)/float(total))*100.0
+        print "Number of mislabeled points out of a total %d points: %d" % (total, total-correct)
         print "Accuracy: %.1f%%" % (accuracy)
         
     def missing_values(self):
