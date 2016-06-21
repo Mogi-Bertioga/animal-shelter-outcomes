@@ -1,16 +1,15 @@
+# -*- coding: utf-8 -*-
+
 import sklearn
 from sklearn import datasets
 from sklearn import svm
 import matplotlib.pyplot as plt
 import pandas
 import numpy as np
-#from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction import FeatureHasher
 from sklearn.preprocessing import LabelEncoder
 from sklearn.naive_bayes import MultinomialNB
-#from sklearn.naive_bayes import BernoulliNB
-
 import sys
 from os import path
 sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
@@ -26,7 +25,10 @@ class animal_shelter:
 
     def parse_age(self, row):
         age = row
-        result = re.search(r'([0-9]+)[^a-z]*([a-z]+)', age)
+        try:
+            result = re.search(r'([0-9]+)[^a-z]*([a-z]+)', age)
+        except:
+            return row
         if result:
             quantity = float(result.group(1))
             time_unit = result.group(2)
@@ -37,17 +39,50 @@ class animal_shelter:
             elif time_unit == 'year' or time_unit == 'years':
                 quantity = quantity * 365
             row = quantity
-        else:
-            row = 99999
         return row
+
+    def shuffle(self):
+        self.df = shuffle.shuffle(self.df)
+
+    def fix_missing(self):
+        self.df = self.df.fillna('NA')
+
+    def convert_age_to_numerical(self):
+        self.df['AgeuponOutcome'] = self.df['AgeuponOutcome'].apply(self.parse_age)
+        self.save_to_file(self.df, 'convert_age_to_numerical_df.csv')
+
+    def categorical_to_numerical_one_hot(self):
+        print 'Converting categorical to numerical...'
+        vect = DictVectorizer(sparse = False)
+        self.vect = vect
+        input_dict = self.input_df.T.to_dict().values()
+        self.input_df = vect.fit_transform(input_dict)
+        print 'Done.'
+        self.save_to_file(self.input_df, 'categorial_to_numerical_one_hot_input_df.csv')
+
+    def categorical_to_numerical_unique(self):
+        print 'Converting categorical to numerical...'
+        self.input_df = self.input_df.apply(LabelEncoder().fit_transform)
+        print 'Done.'
+        self.save_to_file(self.input_df, 'categorial_to_numerical_unique.csv')
+
+    def target_to_numerical(self):
+        output = self.dataset[:][self.output_variable]
+        le = LabelEncoder()
+        le.fit(output.values.flatten())
+        self.le = le
+        output = le.transform(output.values.flatten())
+        print 'Done.'
 
     def load_train_dataset(self):
         self.df = pandas.read_csv('../data/train.csv.gz', compression='gzip')
-        self.df = shuffle.shuffle(self.df)
-        self.df = self.df.fillna('NA')
-        self.input_variables = [1, 5, 6, 7, 8, 9]
+
+    def select_attributes(self):
+        self.input_variables = [5, 6, 7, 8, 9]
         self.output_variable = [3]
-        self.df['AgeuponOutcome'] = self.df['AgeuponOutcome'].apply(self.parse_age)
+        self.input_df = self.df[self.input_variables]
+        self.target_df = self.df[self.output_variable]
+        self.save_to_file(self.input_df, 'select_attributes_input_df.csv')
 
     def split_dataset(self, ts=0, te=1000, vs=1001, ve=2001):
         self.train_start_index = ts
@@ -62,21 +97,6 @@ class animal_shelter:
         print self.dataset.describe()
 
     def learn_naive_bayes(self):
-        print 'Learning from rows %d through %d...' % (self.train_start_index, self.train_end_index)
-        vect = DictVectorizer(sparse = False)
-        self.vect = vect
-        input = self.dataset[:][self.input_variables]
-        input_dict = input.T.to_dict().values()
-        input = vect.fit_transform(input_dict)
-        print input.shape
-        print input
-        print pandas.DataFrame(input).describe()
-        sys.exit()
-        output = self.dataset[:][self.output_variable]
-        le = LabelEncoder()
-        le.fit(output.values.flatten())
-        self.le = le
-        output = le.transform(output.values.flatten())
         nb = MultinomialNB()
         self.clf = nb.fit(input, output)
         #print self.clf
@@ -106,16 +126,42 @@ class animal_shelter:
     def print_scikit_version(self):
         print 'scikit-learn version: ', sklearn.__version__
 
+    def save_to_file(self, df, filename):
+        filename = '../output/' + filename
+        print 'Saving to file %s...' % (filename)
+        df = pandas.DataFrame(df)
+        df.to_csv(filename, index=False)
+        print 'Done.'
+
+# Init script
 app = animal_shelter()
+
+# Step 1: Load train dataset (read CSV)
 app.load_train_dataset()
-app.split_dataset(0, 7000)
-app.learn_naive_bayes()
 
-for i in range(0,5):
-    length = 1000
-    start = 10000 + i*(length)
-    app.split_dataset(0, 3000, start, start+length)
-    app.predict_naive_bayes()
+# Step 2: Parse age
+app.convert_age_to_numerical()
 
-#app.data_summary()
-#app.missing_values()
+# Step 3: Shuffle?
+
+# Step 4: Select attributes
+# Remover AnimalID e OutcomeSubType
+app.select_attributes()
+
+# Step 5: Convert categorical variables to numeric
+#app.categorical_to_numerical_one_hot()
+app.categorical_to_numerical_unique()
+
+# Step 6: Replace missing values
+# Média? Moda?
+app.fix_missing_values()
+
+# Step 7: Validation
+#    - X-Validation
+#        - Leave one out vs. k-fold
+#        - Treinamento:
+#            - Random Forest 
+#        - Testing:
+#            - Apply Model
+
+# Step 6: Validate performance (accuracy, etc)
