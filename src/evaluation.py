@@ -10,8 +10,12 @@ from sklearn.feature_extraction import FeatureHasher
 from sklearn.preprocessing import LabelEncoder
 from sklearn.naive_bayes import MultinomialNB
 #from sklearn.naive_bayes import BernoulliNB
-import lib.missmap
-import lib.shuffle
+
+import sys
+from os import path
+sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
+from lib import missmap
+from lib import shuffle
 import re
 import sys
 
@@ -38,8 +42,8 @@ class animal_shelter:
         return row
 
     def load_train_dataset(self):
-        self.df = pandas.read_csv('data/train.csv.gz', compression='gzip')
-        self.df = lib.shuffle.shuffle(self.df)
+        self.df = pandas.read_csv('../data/train.csv.gz', compression='gzip')
+        self.df = shuffle.shuffle(self.df)
         self.df = self.df.fillna('NA')
         self.input_variables = [1, 5, 6, 7, 8, 9]
         self.output_variable = [3]
@@ -96,7 +100,7 @@ class animal_shelter:
         print "Accuracy: %.1f%%" % (accuracy)
         
     def missing_values(self):
-        lib.missmap.missmap(self.dataset)
+        missmap.missmap(self.dataset)
         plt.savefig('output/missing.png', bbox_inches='tight')
 
     def print_scikit_version(self):
