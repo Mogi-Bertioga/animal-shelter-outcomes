@@ -193,6 +193,8 @@ for i in range( 1, len(stay_intervals ) ):
 
 bins[len(stay_intervals)] = ( max( stay_intervals[ len(stay_intervals) - 1 ][:,0] ) * 1.05 )
 
+# Save bins to file
+np.savetxt( '../output/age_bins.txt', bins )
 
 # Separate the age in bins and keep the original order
 # Deal with NaN -> 0 days
@@ -315,6 +317,12 @@ result = pd.concat([outcometype,
                     ageuponoutcome,
                     breed[main_breeds],
                     color[main_colors]], axis = 1)
+
+# delimiter = '\n'
+np.savetxt( '../output/main_names.txt', name[main_names].columns.values, fmt='%s' )
+np.savetxt( '../output/main_breeds.txt', breed[main_breeds].columns.values, fmt='%s' )
+np.savetxt( '../output/main_colors.txt', color[main_colors].columns.values, fmt='%s' )
+
 
 output_file = '../output/filtered_dataset.csv'
 print 'Saving result table at: ', output_file
