@@ -8,8 +8,10 @@ Authors: Rafael
 import re
 import pandas as pd
 import numpy as np
+from datetime import datetime
+from sklearn.preprocessing import normalize
+from matplotlib.ticker import MaxNLocator
 #import matplotlib.pyplot as plt
-
 
 
 # Set max line output display
@@ -45,7 +47,7 @@ print df.head()
 # Converting categorial attributes to numeric
 # 7 Categorical attributes
 # Categorial without order -> generate dummy attributes
-name = pd.get_dummies(df.Name, dummy_na=True)
+name = pd.get_dummies(df.Name, dummy_na=False)
 print np.sort( np.sum(name == 1) ).size
 #    6375 names
 #    NaN 7691
@@ -59,7 +61,7 @@ print np.sum(outcometype == 1)
 #    Transfer            9422
 #    NaN                    0
 
-outcomesubtype = pd.get_dummies(df.OutcomeSubtype, dummy_na=True)
+outcomesubtype = pd.get_dummies(df.OutcomeSubtype, dummy_na=False)
 print np.sum(outcomesubtype == 1)
 #    Aggressive               320
 #    At Vet                     4
@@ -103,56 +105,98 @@ print np.sum( color == 1 )
 #    367 colors
 
 
+
 # 2 Numerical attributes
 # Age in simbolic representation -> convert to integers (days)
-ageuponoutcome = pd.get_dummies(df.AgeuponOutcome, dummy_na=True)
-print np.sum( ageuponoutcome == 1 )
-#    0 years        22
-#    1 day          66
-#    1 month      1281
-#    1 week        146
-#    1 weeks       171
+ageuponoutcome = pd.get_dummies(df.AgeuponOutcome, dummy_na=False)
+age = np.sum( ageuponoutcome == 1 )
+age.sort(ascending = False)
+print age
+# 45 periods
 #    1 year       3969
+#    2 years      3742
+#    2 months     3397
+#    3 years      1823
+#    1 month      1281
+#    3 months     1277
+#    4 years      1071
+#    5 years       992
+#    4 months      888
+#    6 years       670
+#    3 weeks       659
+#    5 months      652
+#    6 months      588
+#    8 years       536
+#    7 years       531
+#    2 weeks       529
 #    10 months     457
 #    10 years      446
-#    11 months     166
-#    11 years      126
+#    8 months      402
+#    4 weeks       334
+#    9 years       288
+#    7 months      288
 #    12 years      234
+#    9 months      224
+#    1 weeks       171
+#    11 months     166
+#    1 week        146
 #    13 years      143
+#    11 years      126
+#    3 days        109
+#    2 days         99
 #    14 years       97
 #    15 years       85
+#    1 day          66
+#    6 days         50
+#    4 days         50
 #    16 years       36
+#    5 days         24
+#    0 years        22
+#    NaN            18 -> NA
 #    17 years       17
+#    5 weeks        11
 #    18 years       10
 #    19 years        3
-#    2 days         99
-#    2 months     3397
-#    2 weeks       529
-#    2 years      3742
 #    20 years        2
-#    3 days        109
-#    3 months     1277
-#    3 weeks       659
-#    3 years      1823
-#    4 days         50
-#    4 months      888
-#    4 weeks       334
-#    4 years      1071
-#    5 days         24
-#    5 months      652
-#    5 weeks        11
-#    5 years       992
-#    6 days         50
-#    6 months      588
-#    6 years       670
-#    7 months      288
-#    7 years       531
-#    8 months      402
-#    8 years       536
-#    9 months      224
-#    9 years       288
-#    NaN            18
 
+# Plot age.
+stay_animals = np.ndarray( [len(age), 2], dtype=int )
+for i in range( len(age) ):
+    stay_animals[i, 0] = parse_age(age.index.values[i])
+    stay_animals[i, 1] = age[i]
+
+indices = np.argsort(stay_animals[:,0])
+stay_animals[:,0] = stay_animals[indices,0]
+stay_animals[:,1] = stay_animals[indices,1]
+
+#    plt.figure( facecolor='white' )
+#    plt.subplot(121)
+#    plt.plot(stay_animals[:,0], stay_animals[:,1], 'bo-')
+#    plt.title('Animal stay')
+#    plt.ylabel('Number of animals')
+#    plt.xlabel('Period of time (days)')
+#    plt.grid(True)
+
+#    plt.subplot(122)
+#    plt.semilogx(stay_animals[:,0],stay_animals[:,1], 'bo-')
+#    plt.title('Animal stay (semilog)')
+#    plt.ylabel('Number of animals')
+#    plt.xlabel('Period of time (days)')
+#    plt.grid(True)
+#    #plt.savefig('animal_stay.png')
+#    plt.show()
+
+stay_intervals = np.array_split( stay_animals, 8 )
+
+
+bins = np.zeros(len(stay_intervals) + 1)
+for i in range( 1, len(stay_intervals ) ):
+    bins[i] = ( ( min( stay_intervals[i][:,0] ) + max( stay_intervals[i-1][:,0] ) ) / 2. )
+
+bins[len(stay_intervals)] = ( max( stay_intervals[ len(stay_intervals) - 1 ][:,0] ) * 1.05 )
+
+
+# Separate the age in bins and keep the original order
 # Deal with NaN -> 0 days
 ageuponoutcome = df.AgeuponOutcome.fillna(0)
 days = []
@@ -164,6 +208,122 @@ for i in range( len(ageuponoutcome) ):
 
 #ageuponoutcome = pd.DataFrame( days )
 ageuponoutcome = pd.Series( days )
+ageuponoutcome[ 0:len(ageuponoutcome) ] = np.digitize( ageuponoutcome, bins )
 
+ageuponoutcome = pd.DataFrame( ageuponoutcome, columns=['AgeuponOutcome'] )
+
+
+
+
+# df.DateTime
+# Period: 2013 - 2016 (max interval)
+date_time = np.ndarray( [2,len(df.DateTime)] )
+for i in range( len( df.DateTime ) ):
+    # split date and time
+    dt = datetime.strptime(df.DateTime[i], '%Y-%m-%d %H:%M:%S')
+    # store months
+    date_time[0,i] = (dt.year - 2013) * 12 + dt.month + np.round( dt.day / 30. )
+    # store hours
+    date_time[1,i] = dt.hour + np.round( dt.minute / 60. )
+
+# date mean = 24.6 months
+# hour mean = 14.89 hour
+# Standardize month and hour vectors
+date_time[0] = ( date_time[0] - np.mean( date_time[0] ) ) / np.std( date_time[0] )
+date_time[1] = ( date_time[1] - np.mean( date_time[1] ) ) / np.std( date_time[1] )
+# plt.plot(date_time[0]), plt.show()
+# plt.plot(date_time[1]), plt.show()
+
+data_matrix = {'Date (months)' : pd.Series( date_time[0] ), 'Hour' : pd.Series( date_time[1] )}
+DateTime = pd.DataFrame( data_matrix )
+
+
+# -----------------------------------------------------------------------------------
+# Attribute selection
+# -----------------------------------------------------------------------------------
+
+def select_main_samples( samples, num_samples ):
+    samples_count = samples.sum()
+    samples_sel = samples_count[samples_count > num_samples]
+    samples_sel.sort(ascending = False)
+    print samples_sel
+    print 'Array size: ', samples_sel.size
+    main_samples = samples_sel.index.values
+    return main_samples
+
+
+# Select main names (names that are more frequent/more significant)
+main_names = select_main_samples( name, 40 ) # 40 -> 35
+name[main_names]
+# Top 10 names
+#    Max           136
+#    Bella         135
+#    Charlie       107
+#    Daisy         106
+#    Lucy           94
+#    Buddy          87
+#    Princess       86
+#    Rocky          85
+#    Luna           68
+#    Jack           66
+
+
+
+# Get the most significant breeds
+main_breeds = select_main_samples( breed, 25 ) # 25 -> 85
+breed[main_breeds]
+# Top 10 breeds from 181 (x=10)
+#    Domestic Shorthair Mix                      8810
+#    Pit Bull Mix                                1906
+#    Chihuahua Shorthair Mix                     1766
+#    Labrador Retriever Mix                      1363
+#    Domestic Medium Hair Mix                     839
+#    German Shepherd Mix                          575
+#    Domestic Longhair Mix                        520
+#    Siamese Mix                                  389
+#    Australian Cattle Dog Mix                    367
+#    Dachshund Mix                                318
+
+# Agroup breeds by similarity
+# breed.columns.values
+
+
+# Get the most significant colors
+main_colors = select_main_samples( color, 30 ) # 30 -> 79
+color[main_colors]
+# Top 10 colors
+#    Black/White             2824.0
+#    Black                   2292.0
+#    Brown Tabby             1635.0
+#    Brown Tabby/White        940.0
+#    White                    931.0
+#    Brown/White              884.0
+#    Orange Tabby             841.0
+#    Tan/White                773.0
+#    Tricolor                 752.0
+#    Blue/White               702.0
+
+
+# -----------------------------------------------------------------------------------
+# Concatenate attributes in a single table
+# number of samples = 26728
+# 25, 30, 40 -> 214 attributes
+
+result = pd.concat([outcometype,
+                    name[main_names],
+                    DateTime,
+                    animaltype,
+                    sexuponoutcome,
+                    ageuponoutcome,
+                    breed[main_breeds],
+                    color[main_colors]], axis = 1)
+
+output_file = '../output/filtered_dataset.csv'
+print 'Saving result table at: ', output_file
+result.to_csv( output_file )
+
+
+# -----------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------
 
 
