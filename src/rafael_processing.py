@@ -10,6 +10,7 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction import FeatureHasher
 from sklearn.preprocessing import LabelEncoder
 from sklearn.naive_bayes import MultinomialNB
+from sklearn import cross_validation
 import sys
 from os import path
 sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
@@ -103,18 +104,9 @@ class animal_shelter:
 
     def predict_naive_bayes(self):
         print 'Predicting rows %d through %d...' % (self.validation_start_index, self.validation_end_index)
-        le = self.le
-        vect = self.vect
-        input_validation = self.validation[:][self.input_variables]
-        input_validation_dict = input_validation.T.to_dict().values()
-        input_validation = vect.transform(input_validation_dict)
-        output_validation = self.validation[:][self.output_variable]
-        output_validation = le.transform(output_validation.values.flatten())
-        y_pred = self.clf.predict(input_validation)
+        y_pred = self.clf.predict(self.input_validation, self.output_validation)
         total = input_validation.shape[0]
         correct = (output_validation == y_pred).sum()
-        #print output_validation
-        #print y_pred
         accuracy = (float(correct)/float(total))*100.0
         print "Number of mislabeled points out of a total %d points: %d" % (total, total-correct)
         print "Accuracy: %.1f%%" % (accuracy)
@@ -154,7 +146,7 @@ app.categorical_to_numerical_unique()
 
 # Step 6: Replace missing values
 # Média? Moda?
-app.fix_missing_values()
+app.fix_missing()
 
 # Step 7: Validation
 #    - X-Validation
@@ -164,4 +156,4 @@ app.fix_missing_values()
 #        - Testing:
 #            - Apply Model
 
-# Step 6: Validate performance (accuracy, etc)
+# Step 8: Validate performance (accuracy, etc)
