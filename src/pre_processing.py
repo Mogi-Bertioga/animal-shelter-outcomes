@@ -9,8 +9,6 @@ import re
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from sklearn.preprocessing import normalize
-from matplotlib.ticker import MaxNLocator
 #import matplotlib.pyplot as plt
 
 
@@ -320,7 +318,7 @@ result = pd.concat([outcometype,
 
 output_file = '../output/filtered_dataset.csv'
 print 'Saving result table at: ', output_file
-result.to_csv( output_file )
+result.to_csv( output_file, index = False )
 
 
 # -----------------------------------------------------------------------------------
