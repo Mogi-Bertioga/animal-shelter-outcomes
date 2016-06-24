@@ -263,15 +263,15 @@ if not app.flag_restore_session:
     app.target_to_numerical()
 
     # Step 5: Convert categorical variables to numeric
-    #app.categorical_to_numerical_one_hot()
-    app.categorical_to_numerical_unique()
+    app.categorical_to_numerical_one_hot()
+    #app.categorical_to_numerical_unique()
 
     app.save_session()
 
 else:
     app.restore_session()
 
-for i in range(5, 6):
+for i in range(2, 3):
 
     te = 1000*i
     total = app.target_df.shape[0]
